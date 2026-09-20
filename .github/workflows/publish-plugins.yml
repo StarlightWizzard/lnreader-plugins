@@ -7,6 +7,8 @@ on:
     paths:
       - 'plugins/**'
       - 'public/**'
+      - 'scripts/build-plugin-manifest.js'
+      - 'scripts/hidden-plugins.json'
       - 'scripts/publish-plugins.sh'
       - '.github/workflows/publish-plugins.yml'
 
@@ -47,3 +49,4 @@ jobs:
         if: github.repository != 'LNReader/lnreader-plugins'
         run: npm run publish:plugins -- --all-branches
         shell: bash
+

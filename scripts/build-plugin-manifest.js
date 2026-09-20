@@ -24,6 +24,11 @@ const STATIC_LINK = `${USER_CONTENT_LINK}/public/static`;
 const PLUGIN_LINK = `${USER_CONTENT_LINK}/.js/src/plugins`;
 
 const DIST_DIR = '.dist';
+const hiddenPluginIds = new Set(
+  JSON.parse(
+    fs.readFileSync(new URL('./hidden-plugins.json', import.meta.url), 'utf-8'),
+  ),
+);
 
 let json = [];
 if (!fs.existsSync(DIST_DIR)) {
@@ -43,7 +48,7 @@ if (!fs.existsSync(jsonPath)) ONLY_NEW = false;
 if (ONLY_NEW) {
   try {
     const existingJson = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-    json = existingJson;
+    json = existingJson.filter(plugin => !hiddenPluginIds.has(plugin.id));
     for (const plugin of existingJson) {
       existingPlugins[plugin.id] = plugin;
     }
@@ -118,6 +123,11 @@ for (let language in languages) {
     const { id, name, site, version, icon, customJS, customCSS, filters } =
       instance;
     const normalisedName = name.replace(/\[.*\]/, '');
+
+    if (hiddenPluginIds.has(id)) {
+      console.log('   ', name.padEnd(25), ` (${id})`, '\r🙈');
+      return;
+    }
 
     // --only-new logic
     if (
@@ -237,3 +247,4 @@ for (const language of Object.keys(languages)) {
 }
 console.warn('|----------|------------------------|');
 console.warn(`| Total | ${totalPlugins} (${totalPluginsWithFilter}) |`);
+
