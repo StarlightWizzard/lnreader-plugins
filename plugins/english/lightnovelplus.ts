@@ -14,7 +14,7 @@ type ApiChapter = {
 class LightNovelPlus implements Plugin.PluginBase {
   id = 'lightnovelplus';
   name = 'LightNovelPlus';
-  version = '3.0.0';
+  version = '3.0.1';
   icon = 'multisrc/readnovelfull/lightnovelplus/icon.png';
   site = 'https://lightnovelplus.com/';
 
