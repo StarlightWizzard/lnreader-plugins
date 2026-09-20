@@ -46,7 +46,10 @@
     "id": "mostnovel",
     "sourceSite": "https://mostnovel.com/",
     "sourceName": "MostNovel",
-    "options": {}
+    "options": {
+      "down": true,
+      "downSince": 1790000000000
+    }
   },
   {
     "id": "novelmultiverse",
@@ -580,7 +583,9 @@
     "options": {
       "lang": "English",
       "useNewChapterEndpoint": true,
-      "customJs": "loadedCheerio('img[alt=\"Buy Me a Coffee at ko-fi.com\"]').parent().remove(); loadedCheerio('*').contents().each(function() {if (this.type === 'comment' && this.data.trim() === 'Text Ranovel') {let currentNode = this.next;for (let i = 0; i < 2 && currentNode; i++) {const nextNode = currentNode.next;loadedCheerio(currentNode).remove();currentNode = nextNode;}}});"
+      "customJs": "loadedCheerio('img[alt=\"Buy Me a Coffee at ko-fi.com\"]').parent().remove(); loadedCheerio('*').contents().each(function() {if (this.type === 'comment' && this.data.trim() === 'Text Ranovel') {let currentNode = this.next;for (let i = 0; i < 2 && currentNode; i++) {const nextNode = currentNode.next;loadedCheerio(currentNode).remove();currentNode = nextNode;}}});",
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {

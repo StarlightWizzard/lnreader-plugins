@@ -82,7 +82,9 @@
     "sourceName": "Universal Novel",
     "options": {
       "lang": "English",
-      "reverseChapters": false
+      "reverseChapters": false,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -224,6 +226,8 @@
       "lang": "English",
       "reverseChapters": true,
       "customJs": "\n        $('div.entry-content script').remove();\n\n        const url = this.site + chapterPath.slice(0, -1);\n        const offsets = [[0, 12368, 12462], [1, 6960, 7054], [2, 4176, 4270]];\n        const idx = url.length * url.charCodeAt(url.length - 1) * 2 % 3;\n        const [_, offsetLower, offsetCap] = offsets[idx] ?? offsets[0];\n\n        const asciiA = 'A'.charCodeAt(0);\n        const asciiz = 'z'.charCodeAt(0);\n\n        $('div.entry-content > p').text((_, txt) =>\n            txt.split('').map(char => {\n                const code = char.charCodeAt(0);\n                const offset = (code >= offsetLower + asciiA && code <= offsetLower + asciiz)\n                    ? offsetLower\n                    : offsetCap;\n                const decoded = code - offset;\n                return (decoded >= 32 && decoded <= 126) ? String.fromCharCode(decoded) : char;\n            }).join('')\n        );\n",
+      "down": true,
+      "downSince": 1790000000000,
       "versionIncrements": 4
     }
   },
