@@ -27,6 +27,7 @@ type ReadNovelFullOptions = {
   customJs?: string;
   chapterListPaginated?: boolean;
   cleanNovelResults?: boolean;
+  novelsPerPage?: number;
 };
 
 export type ReadNovelFullMetadata = {
@@ -146,12 +147,14 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
       return novels;
     }
 
-    return novels.filter(
-      (novel, index) =>
-        Boolean(novel.cover) &&
-        novel.path.endsWith('.html') &&
-        novels.findIndex(item => item.path === novel.path) === index,
-    );
+    return novels
+      .filter(
+        (novel, index) =>
+          Boolean(novel.cover) &&
+          novel.path.endsWith('.html') &&
+          novels.findIndex(item => item.path === novel.path) === index,
+      )
+      .slice(0, this.options.novelsPerPage);
   }
 
   // ===========================================================================

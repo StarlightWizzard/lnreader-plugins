@@ -68,8 +68,9 @@
       "latestPage": "latest-release-novel",
       "searchPage": "search",
       "chapterListing": "ajax-chapter-option",
-      "versionIncrements": 2,
-      "cleanNovelResults": true
+      "versionIncrements": 3,
+      "cleanNovelResults": true,
+      "novelsPerPage": 20
     }
   },
   {
