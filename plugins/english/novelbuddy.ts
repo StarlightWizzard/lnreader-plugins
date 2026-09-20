@@ -12,11 +12,11 @@ class NovelBuddy implements Plugin.PluginBase {
   name = 'NovelBuddy';
   site = 'https://novelbuddy.me/';
   api = 'https://api.novelbuddy.me/';
-  version = '2.1.3';
+  version = '2.1.4';
   icon = 'src/en/novelbuddy/icon.png';
 
   parseNovels(body: Response): Plugin.NovelItem[] {
-    return body.data.items.map(item => ({
+    return (body.data?.items || []).map(item => ({
       name: item.name,
       path: item.url.startsWith('/') ? item.url.slice(1) : item.url,
       cover: item.cover,
@@ -189,8 +189,14 @@ class NovelBuddy implements Plugin.PluginBase {
     searchTerm: string,
     page: number,
   ): Promise<Plugin.NovelItem[]> {
+    const query = searchTerm
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 200);
     const params = new URLSearchParams({
-      'q': searchTerm,
+      'q': query,
       'limit': '24',
       'page': page.toString(),
     });
@@ -370,3 +376,4 @@ type Manga = {
 };
 type ChapterScript = { props: { pageProps: { initialChapter: Chapter } } };
 type Chapter = { name: string; content: string };
+

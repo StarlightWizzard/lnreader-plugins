@@ -5,7 +5,9 @@
     "sourceName": "Daoist Quest",
     "options": {
       "browsePage": "collection/novels",
-      "versionIncrements": 1
+      "versionIncrements": 1,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -33,7 +35,9 @@
     "sourceSite": "https://penguin-squad.com",
     "sourceName": "Penguin Squad",
     "options": {
-      "browsePage": "novels"
+      "browsePage": "novels",
+      "layout": "penguinSquad",
+      "versionIncrements": 1
     }
   },
   {
@@ -63,7 +67,10 @@
         "chapterTransform": "custom/cherrymistcafe/chapterTransform.js"
       },
       "versionIncrements": 1,
-      "browsePage": "stories"
+      "browsePage": "stories",
+      "down": true,
+      "downSince": 1790000000000
     }
   }
 ]
+

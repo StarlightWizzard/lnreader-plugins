@@ -10,7 +10,7 @@ class DDLPlugin implements Plugin.PluginBase {
   id = 'DDL.com';
   name = 'Divine Dao Library';
   site = 'https://www.divinedaolibrary.com/';
-  version = '1.1.1';
+  version = '1.2.0';
   icon = 'src/en/divinedaolibrary/icon.png';
 
   filters = {
@@ -102,51 +102,39 @@ class DDLPlugin implements Plugin.PluginBase {
     path: string,
     getChapters = false,
   ): Promise<(Plugin.SourceNovel & Required<Plugin.NovelItem>) | undefined> {
-    const link = `${this.site}wp-json/wp/v2/pages?slug=${path}`;
-    const data = await fetchApi(link).then(res => res.json());
-    if (data.length !== 1) {
-      return undefined;
-    }
-    const content = parseHTML(data[0].content.rendered);
-    const excerpt = parseHTML(data[0].excerpt.rendered);
-    const image = content('img').first();
+    const body = await fetchApi(new URL(path, this.site).href).then(res =>
+      res.text(),
+    );
+    const content = parseHTML(body);
+    const name = content('h1.story__identity-title').text().trim();
+    if (!name) return undefined;
     let chapters: Plugin.ChapterItem[] = [];
     if (getChapters) {
-      const linkedChapters = content('li > span > a')
+      chapters = content('li.chapter-group__list-item._publish')
+        .filter((_, el) => !content(el).hasClass('_password'))
         .map((_, anchorEl) => {
-          const chapterPath = this.getPath(anchorEl.attribs['href']);
+          const anchor = content(anchorEl).find('a').first();
+          const chapterPath = this.getPath(anchor.attr('href') || '');
           if (!chapterPath) return;
           return {
-            name: content(anchorEl).text(),
+            name: anchor.text().trim(),
             path: chapterPath,
           } satisfies Plugin.ChapterItem;
         })
         .toArray();
-      const lastChapterPath = await this.findLatestChapter(path);
-      if (lastChapterPath) {
-        chapters = linkedChapters.slice(
-          0,
-          1 +
-            linkedChapters.findIndex(
-              chapter => chapter.path === lastChapterPath,
-            ),
-        );
-      } else {
-        chapters = linkedChapters;
-      }
     }
     return {
-      name: data[0].title.rendered,
+      name,
       path,
-      cover: image.attr('data-lazy-src') ?? image.attr('src') ?? defaultCover,
-      author: content('h3')
-        .first()
+      cover:
+        content('figure.story__thumbnail > a').attr('href') ??
+        content('figure.story__thumbnail img').attr('src') ??
+        defaultCover,
+      author: content('section.story__summary')
         .text()
-        .replace(/^Author:\s*/g, ''),
-      summary: excerpt('p')
-        .first()
-        .text()
-        .replace(/^.+Description\s*/g, ''),
+        .match(/Author:\s*([^\n]+)/i)?.[1]
+        ?.trim(),
+      summary: content('section.story__summary').text().trim(),
       chapters,
     };
   }
@@ -189,23 +177,27 @@ class DDLPlugin implements Plugin.PluginBase {
     }
     const body = await fetchApi(this.site + 'novels').then(res => res.text());
     const loadedCheerio = parseHTML(body);
-    const novels = loadedCheerio('.entry-content ul')
-      .map((_, listEl) => {
-        const list = loadedCheerio(listEl);
-        const category = list.prev().text();
-        return list
-          .find('a')
-          .map((_, anchorEl) => {
-            const path = this.getPath(anchorEl.attribs['href']);
-            if (!path) return;
-            const name = loadedCheerio(anchorEl).text();
-            return [[category, name, path]] as const;
-          })
-          .toArray();
+    const categoryMap: Record<string, string> = {
+      'Ongoing Novels': 'Translating',
+      'Completed Novels': 'Completed',
+      'Dropped Novels': 'Dropped',
+    };
+    const novels = loadedCheerio('a[href*="/story/"]')
+      .map((_, anchorEl) => {
+        const anchor = loadedCheerio(anchorEl);
+        const path = this.getPath(anchor.attr('href') || '');
+        if (!path) return;
+        const card = anchor.closest('.card');
+        const heading = card.find('h3.card__title').first().text().trim();
+        const category = categoryMap[heading] || 'Translating';
+        return [[category, anchor.text().trim(), path]] as const;
       })
       .toArray();
-    this.allNovelsCache = novels;
-    return novels;
+    const unique = Array.from(
+      new Map(novels.map(novel => [novel[2], novel])).values(),
+    );
+    this.allNovelsCache = unique;
+    return unique;
   }
 
   /**
@@ -267,14 +259,10 @@ class DDLPlugin implements Plugin.PluginBase {
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
-    const chapterLink = `${this.site}wp-json/wp/v2/posts?slug=${chapterPath}`;
-    const chapter = await fetchApi(chapterLink).then(res => res.json());
-    if (chapter.length !== 1) {
-      return '';
-    }
-    const title = `<h1>${chapter[0].title.rendered}</h1>`;
-    const content = chapter[0].content.rendered;
-    return `${title}${content}`;
+    const body = await fetchApi(new URL(chapterPath, this.site).href).then(
+      res => res.text(),
+    );
+    return parseHTML(body)('section#chapter-content > div').html() || '';
   }
 
   async searchNovels(
@@ -296,3 +284,4 @@ class DDLPlugin implements Plugin.PluginBase {
 }
 
 export default new DDLPlugin();
+

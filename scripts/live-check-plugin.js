@@ -14,12 +14,17 @@ import fs from 'fs/promises';
 import os from 'os';
 
 const require = createRequire(import.meta.url);
+const Module = require('module');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = path.join(__dirname, '..');
 
 const MIN_CHAPTER_LENGTH = 200;
 const STEP_TIMEOUT_MS = 30_000;
+const CHECK_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.LIVE_CHECK_CONCURRENCY || 1),
+);
 const CLOUDFLARE_HEADER_HINTS = ['cf-ray', 'cf-cache-status', 'cf-request-id'];
 
 /** @typedef {'PASS' | 'FAIL' | 'INCONCLUSIVE'} StepStatus */
@@ -36,7 +41,16 @@ function isNetworkOrBlockError(error) {
   // Only 403/503 indicate a block — a cf-ray/cf-cache-status header alone
   // just means the site is fronted by Cloudflare's CDN (true for a huge
   // share of the web) and says nothing about whether we were blocked.
-  const status = error?.response?.status ?? error?.status;
+  const messageStatus = message.match(
+    /(?:HTTP|status|site\s*\()?\s*(403|429|503|520|521|522|523|524|525|526|530)\b/i,
+  )?.[1];
+  const status =
+    error?.response?.status ??
+    error?.status ??
+    (messageStatus ? Number(messageStatus) : undefined);
+  if (/captcha|turnstile|anti[- ]?bot/i.test(message)) {
+    return { inconclusive: true, reason: 'Anti-bot challenge' };
+  }
   if (status === 403 || status === 503) {
     const headers = error?.response?.headers;
     const headerKeys = headers
@@ -78,7 +92,8 @@ async function withTimeout(promise, ms, label) {
 async function bundlePlugin(pluginPath) {
   const absPath = path.resolve(REPO_ROOT, pluginPath);
   const result = await esbuild.build({
-    entryPoints: [absPath],
+    absWorkingDir: REPO_ROOT,
+    entryPoints: [{ in: absPath, out: 'plugin' }],
     bundle: true,
     platform: 'node',
     format: 'cjs',
@@ -101,7 +116,65 @@ async function bundlePlugin(pluginPath) {
 }
 
 async function loadPluginInstance(pluginPath) {
-  const bundledPath = await bundlePlugin(pluginPath);
+  let bundledPath;
+  try {
+    bundledPath = await bundlePlugin(pluginPath);
+  } catch (bundleError) {
+    const sourcePath = path.resolve(REPO_ROOT, pluginPath);
+    const originalResolveFilename = Module._resolveFilename;
+    const originalTsExtension = Module._extensions['.ts'];
+    const ts = require('typescript');
+    const fsSync = require('fs');
+
+    Module._extensions['.ts'] = function (module, filename) {
+      const source = fsSync.readFileSync(filename, 'utf8');
+      const output = ts.transpileModule(source, {
+        compilerOptions: {
+          esModuleInterop: true,
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+        },
+        fileName: filename,
+      });
+      module._compile(output.outputText, filename);
+    };
+
+    Module._resolveFilename = function (request, parent, isMain, options) {
+      const aliases = [
+        ['@libs/', path.join(REPO_ROOT, 'src', 'libs')],
+        ['@plugins/', path.join(REPO_ROOT, 'plugins')],
+        ['@/', path.join(REPO_ROOT, 'src')],
+      ];
+      const alias = aliases.find(([prefix]) => request.startsWith(prefix));
+      if (alias) {
+        request = path.join(alias[1], request.slice(alias[0].length));
+      }
+      return originalResolveFilename.call(
+        this,
+        request,
+        parent,
+        isMain,
+        options,
+      );
+    };
+
+    try {
+      const mod = require(sourcePath);
+      return mod.default ?? mod;
+    } catch (fallbackError) {
+      fallbackError.message = `${fallbackError.message} (TypeScript fallback after: ${bundleError.message})`;
+      throw fallbackError;
+    } finally {
+      Module._resolveFilename = originalResolveFilename;
+      if (originalTsExtension) {
+        Module._extensions['.ts'] = originalTsExtension;
+      } else {
+        delete Module._extensions['.ts'];
+      }
+      delete require.cache[sourcePath];
+    }
+  }
+
   try {
     // Plain CJS require(), not ESM import() — importing a CJS module from an
     // ESM context wraps the whole `module.exports` as `.default` (so a
@@ -267,7 +340,7 @@ async function runChecks(plugin) {
  */
 async function probeSiteReachability(site) {
   try {
-    const res = await withTimeout(
+    let res = await withTimeout(
       fetch(site, {
         method: 'HEAD',
         headers: { 'User-Agent': 'Mozilla/5.0 live-check-plugin' },
@@ -275,6 +348,16 @@ async function probeSiteReachability(site) {
       STEP_TIMEOUT_MS,
       'site probe',
     );
+    if (res.status === 405) {
+      res = await withTimeout(
+        fetch(site, {
+          method: 'GET',
+          headers: { 'User-Agent': 'Mozilla/5.0 live-check-plugin' },
+        }),
+        STEP_TIMEOUT_MS,
+        'site probe',
+      );
+    }
     if (res.status >= 200 && res.status < 400) {
       // A cf-ray/cf-cache-status header here just means the site is fronted
       // by Cloudflare's CDN, which is true of a huge share of the web and
@@ -296,7 +379,14 @@ async function probeSiteReachability(site) {
 }
 
 async function checkPlugin(pluginPath) {
-  const result = { pluginPath, steps: [], loadError: null };
+  const result = {
+    pluginPath,
+    pluginId: null,
+    pluginName: null,
+    site: null,
+    steps: [],
+    loadError: null,
+  };
   let plugin;
   try {
     plugin = await loadPluginInstance(pluginPath);
@@ -304,6 +394,9 @@ async function checkPlugin(pluginPath) {
     result.loadError = error.message;
     return result;
   }
+  result.pluginId = plugin.id;
+  result.pluginName = plugin.name;
+  result.site = plugin.site;
 
   const probe = await probeSiteReachability(plugin.site);
   if (!probe.reachable) {
@@ -336,6 +429,12 @@ function printReport(results) {
 
   for (const result of results) {
     console.log(`\n### \`${escapeMarkdown(result.pluginPath)}\``);
+    if (result.site) {
+      console.log(
+        `\n- Plugin: \`${escapeMarkdown(result.pluginId)}\` (${escapeMarkdown(result.pluginName)})`,
+      );
+      console.log(`- Site: ${escapeMarkdown(result.site)}`);
+    }
     console.log('\n| Check | Result | Details |');
     console.log('| --- | --- | --- |');
 
@@ -382,10 +481,20 @@ async function main() {
     return;
   }
 
-  const results = [];
-  for (const pluginPath of pluginPaths) {
-    results.push(await checkPlugin(pluginPath));
-  }
+  const results = new Array(pluginPaths.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < pluginPaths.length) {
+      const index = nextIndex++;
+      results[index] = await checkPlugin(pluginPaths[index]);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(CHECK_CONCURRENCY, pluginPaths.length) },
+      worker,
+    ),
+  );
 
   const hasFail = printReport(results);
   // Set exitCode rather than calling process.exit(): fetch's keep-alive
@@ -398,3 +507,4 @@ main().catch(error => {
   console.error('Fatal error:', error);
   process.exitCode = 1;
 });
+

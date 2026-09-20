@@ -163,7 +163,7 @@ class ReLibraryPlugin implements Plugin.PluginBase {
   name = 'Re:Library';
   icon = 'src/en/relibrary/icon.png';
   site = 'https://re-library.com';
-  version = '1.0.3';
+  version = '1.0.4';
   imageRequestInit: Plugin.ImageRequestInit = {
     headers: {
       Referer: 'https://re-library.com/',
@@ -181,20 +181,19 @@ class ReLibraryPlugin implements Plugin.PluginBase {
     const body = await result.text();
 
     const loadedCheerio = loadCheerio(body);
-    loadedCheerio('.entry-content > ol > li').each((_i, el) => {
+    loadedCheerio('.relibrary-novel-card').each((_i, el) => {
       const novel: Partial<Plugin.NovelItem> = {};
-      novel.name = loadedCheerio(el).find('h3 > a').text();
+      novel.name = loadedCheerio(el)
+        .find('h3.relibrary-title > a')
+        .text()
+        .trim();
       novel.path = loadedCheerio(el)
-        .find('table > tbody > tr > td > a')
+        .find('a.relibrary-cover-link')
         .attr('href');
       if (novel.name === undefined || novel.path === undefined) return;
       novel.cover =
-        loadedCheerio(el)
-          .find('table > tbody > tr > td > a > img')
-          .attr('data-cfsrc') ||
-        loadedCheerio(el)
-          .find('table > tbody > tr > td > a > img')
-          .attr('src') ||
+        loadedCheerio(el).find('img.relibrary-cover').attr('data-cfsrc') ||
+        loadedCheerio(el).find('img.relibrary-cover').attr('src') ||
         defaultCover;
       novel.path = new URL(novel.path, this.site).pathname;
       novels.push(novel as Plugin.NovelItem);
@@ -414,3 +413,4 @@ class ReLibraryPlugin implements Plugin.PluginBase {
 }
 
 export default new ReLibraryPlugin();
+

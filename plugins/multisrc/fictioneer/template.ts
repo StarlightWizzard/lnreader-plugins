@@ -7,6 +7,7 @@ import { Filters } from '@libs/filterInputs';
 type FictioneerOptions = {
   browsePage: string;
   lang?: string;
+  layout?: 'penguinSquad';
   versionIncrements?: number;
 };
 
@@ -65,6 +66,28 @@ export class FictioneerPlugin implements Plugin.PluginBase {
     //   filters,
     // }: Plugin.PopularNovelsOptions<typeof this.filters>,
   ): Promise<Plugin.NovelItem[]> {
+    if (this.options.layout === 'penguinSquad') {
+      if (pageNo !== 1) return [];
+      const req = await fetchApi(`${this.site}/${this.options.browsePage}`);
+      const loadedCheerio = loadCheerio(await req.text());
+
+      return loadedCheerio('a[href^="/novels/"]')
+        .filter((_, el) => {
+          const href = loadedCheerio(el).attr('href') || '';
+          return href.split('/').length === 3;
+        })
+        .map((_, el) => {
+          const element = loadedCheerio(el);
+          const novelUrl = element.attr('href')!;
+          return {
+            name: element.find('h3').text().trim(),
+            cover: element.find('img').attr('src'),
+            path: novelUrl.substring(1),
+          };
+        })
+        .toArray();
+    }
+
     const req = await fetchApi(
       this.site +
         '/' +
@@ -85,6 +108,60 @@ export class FictioneerPlugin implements Plugin.PluginBase {
     const req = await fetchApi(this.site + '/' + novelPath + '/');
     const body = await req.text();
     const loadedCheerio = loadCheerio(body);
+
+    if (this.options.layout === 'penguinSquad') {
+      const statusText = loadedCheerio('span[data-slot="badge"]')
+        .filter((_, el) =>
+          /^(Ongoing|Completed|Dropped|Hiatus)$/i.test(
+            loadedCheerio(el).text().trim(),
+          ),
+        )
+        .first()
+        .text()
+        .trim();
+      const statusMap: Record<string, string> = {
+        ongoing: NovelStatus.Ongoing,
+        completed: NovelStatus.Completed,
+        dropped: NovelStatus.Cancelled,
+        hiatus: NovelStatus.OnHiatus,
+      };
+      const meta = loadedCheerio('h1')
+        .nextAll('div.text-muted-foreground')
+        .first();
+
+      return {
+        path: novelPath,
+        name: loadedCheerio('h1').first().text().trim(),
+        author: meta.find('span').last().text().trim(),
+        cover: loadedCheerio('img[alt]').first().attr('src'),
+        genres: loadedCheerio('h1')
+          .prevAll('div')
+          .first()
+          .find('span[data-slot="badge"]')
+          .map((_, el) => loadedCheerio(el).text().trim())
+          .toArray()
+          .join(','),
+        summary: loadedCheerio('p.line-clamp-10').text().trim(),
+        status: statusMap[statusText.toLowerCase()] || NovelStatus.Unknown,
+        chapters: loadedCheerio('a[href*="/chapter-"]')
+          .filter(
+            (_, el) => loadedCheerio(el).find('svg.lucide-lock').length === 0,
+          )
+          .map((_, el) => {
+            const element = loadedCheerio(el);
+            const href = element.attr('href');
+            if (!href) return;
+            const number = element.find('span.font-mono').text().trim();
+            const title = element.find('p').first().text().trim();
+            return {
+              name: title ? `Chapter ${number}: ${title}` : `Chapter ${number}`,
+              path: href.substring(1),
+              chapterNumber: Number(number),
+            };
+          })
+          .toArray(),
+      };
+    }
 
     const novel: Plugin.SourceNovel = {
       path: novelPath,
@@ -144,6 +221,10 @@ export class FictioneerPlugin implements Plugin.PluginBase {
 
     const loadedCheerio = loadCheerio(body);
 
+    if (this.options.layout === 'penguinSquad') {
+      return loadedCheerio('div.reader-content').html() || '';
+    }
+
     // chapterTransformJs HERE
 
     return loadedCheerio('section#chapter-content > div').html() || '';
@@ -153,6 +234,13 @@ export class FictioneerPlugin implements Plugin.PluginBase {
     searchTerm: string,
     pageNo: number,
   ): Promise<Plugin.NovelItem[]> {
+    if (this.options.layout === 'penguinSquad') {
+      if (pageNo !== 1) return [];
+      const novels = await this.popularNovels(1);
+      const query = searchTerm.toLowerCase();
+      return novels.filter(novel => novel.name.toLowerCase().includes(query));
+    }
+
     const req = await fetchApi(
       this.site +
         `/${pageNo === 1 ? '' : 'page/' + pageNo + '/'}?s=${encodeURIComponent(searchTerm)}&post_type=fcn_story`,
@@ -169,3 +257,4 @@ export class FictioneerPlugin implements Plugin.PluginBase {
   // resolveUrl = (path: string, isNovel?: boolean) =>
   //   this.site + '/' + path + '/';
 }
+

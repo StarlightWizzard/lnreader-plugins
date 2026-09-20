@@ -11,7 +11,7 @@ class INovelTranslation implements Plugin.PluginBase {
   name = 'iNovelTranslation';
   icon = 'src/en/inoveltranslation/icon.png';
   site = 'https://inoveltranslation.com';
-  version = '1.0.2';
+  version = '1.0.3';
   filters: Filters | undefined = undefined;
 
   pluginSettings = {
@@ -33,7 +33,7 @@ class INovelTranslation implements Plugin.PluginBase {
   };
 
   async popularNovels(pageNo: number): Promise<Plugin.NovelItem[]> {
-    const url = `${this.site}/api/novels?limit=50&page=${pageNo}`;
+    const url = `${this.site}/api/novels?where[_status][equals]=published&limit=50&page=${pageNo}`;
     const result: ApiResponse<NovelData> = await fetchApi(url, {
       headers: this.HEADERS,
     }).then(r => r.json());
@@ -41,13 +41,15 @@ class INovelTranslation implements Plugin.PluginBase {
     const novels: Plugin.NovelItem[] = [];
 
     if (result.docs) {
-      result.docs.forEach(doc => {
-        novels.push({
-          name: doc.title,
-          path: `/novels/${doc.id}`,
-          cover: doc.cover?.url ? this.site + doc.cover.url : defaultCover,
+      result.docs
+        .filter(doc => doc.title)
+        .forEach(doc => {
+          novels.push({
+            name: doc.title,
+            path: `/novels/${doc.id}`,
+            cover: doc.cover?.url ? this.site + doc.cover.url : defaultCover,
+          });
         });
-      });
     }
 
     return novels;
@@ -345,7 +347,7 @@ class INovelTranslation implements Plugin.PluginBase {
   ): Promise<Plugin.NovelItem[]> {
     const url = `${this.site}/api/novels?where[title][contains]=${encodeURIComponent(
       searchTerm,
-    )}&limit=50&page=${pageNo}`;
+    )}&where[_status][equals]=published&limit=50&page=${pageNo}`;
     const result: ApiResponse<NovelData> = await fetchApi(url, {
       headers: this.HEADERS,
     }).then(r => r.json());
@@ -353,13 +355,15 @@ class INovelTranslation implements Plugin.PluginBase {
     const novels: Plugin.NovelItem[] = [];
 
     if (result.docs) {
-      result.docs.forEach(doc => {
-        novels.push({
-          name: doc.title,
-          path: `/novels/${doc.id}`,
-          cover: doc.cover?.url ? this.site + doc.cover.url : defaultCover,
+      result.docs
+        .filter(doc => doc.title)
+        .forEach(doc => {
+          novels.push({
+            name: doc.title,
+            path: `/novels/${doc.id}`,
+            cover: doc.cover?.url ? this.site + doc.cover.url : defaultCover,
+          });
         });
-      });
     }
 
     return novels;
@@ -404,3 +408,4 @@ type ChapterData = {
 type ApiResponse<T> = {
   docs: T[];
 };
+

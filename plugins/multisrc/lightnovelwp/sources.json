@@ -99,7 +99,9 @@
     "sourceName": "NobleMTL",
     "options": {
       "lang": "English",
-      "reverseChapters": true
+      "reverseChapters": true,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -198,7 +200,9 @@
     "sourceName": "Ippotranslations",
     "options": {
       "lang": "English",
-      "reverseChapters": true
+      "reverseChapters": true,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -268,7 +272,9 @@
     "sourceName": "Vandy Translate",
     "options": {
       "reverseChapters": true,
-      "lang": "English"
+      "lang": "English",
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -310,15 +316,6 @@
     }
   },
   {
-    "id": "kdtnovels",
-    "sourceSite": "https://kdtnovels.net/",
-    "sourceName": "KDT Novels",
-    "options": {
-      "lang": "English",
-      "reverseChapters": true
-    }
-  },
-  {
     "id": "hyacinthbloom",
     "sourceSite": "https://hyacinthbloom.com/",
     "sourceName": "Hyacinth in Bloom",
@@ -326,7 +323,7 @@
       "lang": "English",
       "reverseChapters": true,
       "hasLocked": true
-    } 
+    }
   },
   {
     "id": "blumeverse",
@@ -336,7 +333,7 @@
       "lang": "English",
       "reverseChapters": true,
       "hasLocked": true
-    } 
+    }
   },
   {
     "id": "dobynovels",
@@ -344,3 +341,4 @@
     "sourceName": "DobyNovels"
   }
 ]
+

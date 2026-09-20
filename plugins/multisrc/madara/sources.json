@@ -380,14 +380,6 @@
     }
   },
   {
-    "id": "wordexcerpt",
-    "sourceSite": "https://wordexcerpt.com/",
-    "sourceName": "WordExcerpt",
-    "options": {
-      "lang": "English"
-    }
-  },
-  {
     "id": "citrusaurora",
     "sourceSite": "https://citrusaurora.com/",
     "sourceName": "Citrus Aurora",
@@ -595,7 +587,9 @@
     "sourceName": "Dragonholic",
     "options": {
       "lang": "English",
-      "useNewChapterEndpoint": true
+      "useNewChapterEndpoint": true,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
@@ -671,14 +665,6 @@
     }
   },
   {
-    "id": "hangulplanet",
-    "sourceSite": "https://hangulplanet.com/",
-    "sourceName": "HangulPlanet",
-    "options": {
-      "useNewChapterEndpoint": true
-    }
-  },
-  {
     "id": "lovelyblossoms",
     "sourceSite": "https://lovelyblossoms.com/",
     "sourceName": "Lovelyblossoms",
@@ -687,3 +673,4 @@
     }
   }
 ]
+

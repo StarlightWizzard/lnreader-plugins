@@ -9,7 +9,7 @@ class Chrysanthemumgarden implements Plugin.PluginBase {
   name = 'Chrysanthemum Garden';
   icon = 'src/en/chrysanthemumgarden/icon.png';
   site = 'https://chrysanthemumgarden.com';
-  version = '1.0.3';
+  version = '1.0.4';
   filters: Filters | undefined = undefined;
   imageRequestInit?: Plugin.ImageRequestInit | undefined = undefined;
 
@@ -83,12 +83,20 @@ class Chrysanthemumgarden implements Plugin.PluginBase {
         .toArray(),
     ].join(', ');
 
-    novel.chapters = loadedCheerio('div.chapter-item > a')
+    novel.chapters = loadedCheerio('a.chapter-item')
       .map((i, el) => {
         const href = loadedCheerio(el).attr('href');
         if (!href) return;
+        const chapterNumber = loadedCheerio(el)
+          .find('.chapter-item-number')
+          .text()
+          .trim();
+        const chapterName = loadedCheerio(el)
+          .find('.chapter-item-name')
+          .text()
+          .trim();
         return {
-          name: loadedCheerio(el).text().trim(),
+          name: [chapterNumber, chapterName].filter(Boolean).join(' '),
           path: href
             .replace(this.site, '')
             .replace(/^\//, '')
@@ -156,3 +164,4 @@ type ChrysanthemumGardenNovelItem = {
   path: string;
   cover: string;
 };
+

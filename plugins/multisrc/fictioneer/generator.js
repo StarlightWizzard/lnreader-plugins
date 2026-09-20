@@ -7,12 +7,14 @@ const folder = dirname(fileURLToPath(import.meta.url));
 import list from './sources.json' with { type: 'json' };
 
 export const generateAll = function () {
-  return list.map(source => {
-    console.log(
-      `[fictioneer] Generating: ${source.id}${' '.repeat(20 - source.id.length)}`,
-    );
-    return generator(source);
-  });
+  return list
+    .filter(source => !source.options?.down)
+    .map(source => {
+      console.log(
+        `[fictioneer] Generating: ${source.id}${' '.repeat(20 - source.id.length)}`,
+      );
+      return generator(source);
+    });
 };
 
 const generator = function generator(source) {
@@ -39,3 +41,4 @@ export default plugin;
     pluginScript,
   };
 };
+
