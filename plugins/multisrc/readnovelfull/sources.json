@@ -63,11 +63,12 @@
   {
     "id": "anf.net",
     "sourceSite": "https://novgo.net/",
-    "sourceName": "AllNovelFull",
+    "sourceName": "NovGo",
     "options": {
       "latestPage": "latest-release-novel",
       "searchPage": "search",
-      "chapterListing": "ajax-chapter-option"
+      "chapterListing": "ajax-chapter-option",
+      "versionIncrements": 1
     }
   },
   {
@@ -99,3 +100,4 @@
     }
   }
 ]
+
