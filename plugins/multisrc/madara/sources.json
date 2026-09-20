@@ -196,7 +196,9 @@
     "sourceSite": "https://zetrotranslation.com/",
     "sourceName": "Zetro Translation",
     "options": {
-      "hasLocked": true
+      "hasLocked": true,
+      "down": true,
+      "downSince": 1790000000000
     }
   },
   {
