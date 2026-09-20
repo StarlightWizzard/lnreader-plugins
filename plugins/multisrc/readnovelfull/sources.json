@@ -68,9 +68,8 @@
       "latestPage": "latest-release-novel",
       "searchPage": "search",
       "chapterListing": "ajax-chapter-option",
-      "versionIncrements": 3,
-      "cleanNovelResults": true,
-      "novelsPerPage": 20
+      "versionIncrements": 4,
+      "novelListClass": "fwn-archive-main"
     }
   },
   {

@@ -26,8 +26,7 @@ type ReadNovelFullOptions = {
   pageAsPath?: boolean;
   customJs?: string;
   chapterListPaginated?: boolean;
-  cleanNovelResults?: boolean;
-  novelsPerPage?: number;
+  novelListClass?: string;
 };
 
 export type ReadNovelFullMetadata = {
@@ -79,9 +78,15 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
     const parser = new Parser({
       onopentag: (name, attribs) => {
         const state = currentState();
+        const classNames = attribs.class?.split(/\s+/) || [];
+        const isNovelList = this.options.novelListClass
+          ? classNames.includes(this.options.novelListClass)
+          : attribs.class?.includes('archive') ||
+            attribs.class === 'col-content';
+
         if (
-          attribs.class?.includes('archive') ||
-          attribs.class === 'col-content'
+          state === ParsingState.Idle &&
+          isNovelList
         ) {
           pushState(ParsingState.NovelList);
           depth = 0;
@@ -143,18 +148,7 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
     parser.write(html);
     parser.end();
 
-    if (!this.options.cleanNovelResults) {
-      return novels;
-    }
-
-    return novels
-      .filter(
-        (novel, index) =>
-          Boolean(novel.cover) &&
-          novel.path.endsWith('.html') &&
-          novels.findIndex(item => item.path === novel.path) === index,
-      )
-      .slice(0, this.options.novelsPerPage);
+    return novels;
   }
 
   // ===========================================================================
