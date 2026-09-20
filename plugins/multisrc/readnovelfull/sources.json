@@ -68,7 +68,8 @@
       "latestPage": "latest-release-novel",
       "searchPage": "search",
       "chapterListing": "ajax-chapter-option",
-      "versionIncrements": 1
+      "versionIncrements": 2,
+      "cleanNovelResults": true
     }
   },
   {

@@ -26,6 +26,7 @@ type ReadNovelFullOptions = {
   pageAsPath?: boolean;
   customJs?: string;
   chapterListPaginated?: boolean;
+  cleanNovelResults?: boolean;
 };
 
 export type ReadNovelFullMetadata = {
@@ -141,7 +142,16 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
     parser.write(html);
     parser.end();
 
-    return novels;
+    if (!this.options.cleanNovelResults) {
+      return novels;
+    }
+
+    return novels.filter(
+      (novel, index) =>
+        Boolean(novel.cover) &&
+        novel.path.endsWith('.html') &&
+        novels.findIndex(item => item.path === novel.path) === index,
+    );
   }
 
   // ===========================================================================
@@ -961,3 +971,4 @@ enum ParsingState {
   NovelName,
   NovelList,
 }
+
