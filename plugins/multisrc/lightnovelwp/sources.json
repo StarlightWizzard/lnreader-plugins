@@ -287,7 +287,8 @@
     "sourceName": "Lazy Girl Translations",
     "options": {
       "reverseChapters": false,
-      "lang": "English"
+      "lang": "English",
+      "versionIncrements": 1
     }
   },
   {

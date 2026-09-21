@@ -450,8 +450,9 @@ export class LightNovelWPPlugin implements Plugin.PluginBase {
     searchTerm: string,
     page: number,
   ): Promise<Plugin.NovelItem[]> {
+    const baseUrl = this.site.replace(/\/?$/, '/');
     const url =
-      this.site + 'page/' + page + '/?s=' + encodeURIComponent(searchTerm);
+      baseUrl + 'page/' + page + '/?s=' + encodeURIComponent(searchTerm);
     const html = await this.safeFecth(url, true);
     return this.parseNovels(html);
   }
@@ -463,3 +464,4 @@ function extractChapterNumber(data: string, tempChapter: Plugin.ChapterItem) {
     tempChapter.chapterNumber = parseInt(tempChapterNumber[0]);
   }
 }
+
